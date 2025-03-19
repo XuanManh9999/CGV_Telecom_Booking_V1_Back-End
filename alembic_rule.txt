@@ -1,0 +1,11 @@
+Cài đặt Alembic pip install alembic
+Khởi tạo Alembic alembic init alembic
+Cấu hình Alembic Mở file alembic.ini và chỉnh sửa dòng: sqlalchemy.url = postgresql+asyncpg://myuser:mypassword@localhost:5432/mydatabase
+Mở file alembic/env.py, tìm đoạn này:
+from app.database.db import Base
+from app.database.models import *  # Import tất cả models
+
+target_metadata = Base.metadata
+📌 Tạo file migration: alembic revision --autogenerate -m "create initial tables"
+
+Chạy migration để tạo bảng: alembic upgrade head

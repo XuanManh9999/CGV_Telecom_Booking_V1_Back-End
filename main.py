@@ -1,0 +1,42 @@
+import uvicorn
+from fastapi import FastAPI
+from app.api.v1.endpoints import booking
+from app.api.v1.endpoints import phone_number
+from app.api.v1.endpoints import type_number
+from app.api.v1.endpoints import provider
+from app.middleware.config import CustomMiddleware
+from fastapi.middleware.cors import CORSMiddleware
+from app.api.v1.endpoints import auth
+app = FastAPI()
+
+
+app.include_router(auth.router, prefix="/api/v1", tags=["Auth"])
+
+app.include_router(booking.router, prefix="/api/v1", tags=["Booking"])
+app.include_router(phone_number.router, prefix="/api/v1", tags=["PhoneNumber"])
+app.include_router(type_number.router, prefix="/api/v1", tags=["TypeNumber"])
+app.include_router(provider.router, prefix="/api/v1", tags=["Provider"])
+
+
+app.add_middleware(CustomMiddleware)
+
+origins = [
+    "http://localhost:5173",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+@app.get("/")
+def root():
+    return {"message": "Welcome To Server Booking"}
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
+    #uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)

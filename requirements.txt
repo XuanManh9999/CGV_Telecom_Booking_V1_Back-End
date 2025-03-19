@@ -1,0 +1,13 @@
+fastapi
+uvicorn
+sqlalchemy
+asyncpg
+pydantic
+cx_Oracle
+pandas
+pydantic
+python-dotenv
+openpyxl
+python-multipart
+python-jose[cryptography]
+passlib
