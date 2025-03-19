@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from datetime import timedelta
-from app.services.v1.handle_authetication import authenticate_user, create_access_token
+from app.services.v1.handle_authetication import authenticate_user, create_access_token, create_refresh_token
 from app.schemas.auth import Token, User
 from app.core.config import settings
 
@@ -24,8 +24,12 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     access_token = create_access_token(
         data={"sub": user["username"], "user_id": user["user_id"], "role": user["role"], "chat_id": user["chat_id"]}
     )
+    refresh_token = create_refresh_token(
+        data={"sub": user["username"], "user_id": user["user_id"], "role": user["role"], "chat_id": user["chat_id"]}
+    )
 
     return {
         "access_token": access_token,
-        "token_type": "bearer"
+        "token_type": "bearer",
+        "refresh_token": refresh_token,
     }
