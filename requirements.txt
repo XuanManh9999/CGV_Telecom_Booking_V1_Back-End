@@ -11,3 +11,8 @@ openpyxl
 python-multipart
 python-jose[cryptography]
 passlib
+requests
+prettytable
+python-telegram-bot
+tabulate
+

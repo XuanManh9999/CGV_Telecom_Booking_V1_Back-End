@@ -38,7 +38,7 @@ class PhoneNumber(Base):
     id = Column(Integer, primary_key=True, index=True)
     provider_id = Column(Integer, ForeignKey("providers.id"), nullable=False)
     phone_number = Column(String(20), unique=True, nullable=False)
-    status = Column(String(20), default='available')  # available, booked, expired
+    status = Column(String(20), default='available')  # available, booked, expired, released
     booked_until = Column(TIMESTAMP)
     created_at = Column(TIMESTAMP, default=func.now())
     updated_at = Column(TIMESTAMP, default=func.now(), onupdate=func.now())

@@ -1,9 +1,8 @@
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
+
 from app.core.config import settings
-from typing import Optional
-from datetime import datetime
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 
@@ -21,7 +20,6 @@ def get_current_user(token: str = Depends(oauth2_scheme)):
         user_id: int = payload.get("user_id")
         role: int = payload.get("role")
         chat_id: int = payload.get("chat_id")
-        exp: datetime = payload.get("exp")
 
         if username is None or user_id is None:
             raise credentials_exception
@@ -53,3 +51,5 @@ def check_role(required_roles: list):
         return current_user
 
     return role_checker
+
+

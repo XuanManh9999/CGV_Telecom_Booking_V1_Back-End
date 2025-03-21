@@ -1,12 +1,12 @@
-import requests
 import time
 from typing import Optional, Dict, Any
-from config.telegram import TelegramConfig
+
 import pandas as pd
-import prettytable as pt
-from telegram.ext import CallbackContext, Updater
-from telegram.parsemode import ParseMode
+import requests
 from tabulate import tabulate
+from telegram.constants import ParseMode
+
+from app.core.config import TelegramConfig
 
 
 class TelegramBot:
@@ -49,7 +49,6 @@ class TelegramBot:
 
         url = f"{self.base_url}/sendMessage"
         payload = {'chat_id': chat_id, 'text': message, 'parse_mode': parse_mode}
-
         for attempt in range(1, self.max_retries + 1):
             try:
                 response = requests.post(url, data=payload, timeout=30)

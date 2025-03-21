@@ -1,4 +1,6 @@
 import re
+from datetime import date, datetime
+from typing import Optional, Union
 
 # Regex patterns
 PHONE_REGEX = re.compile(r"^(0?)(3[2-9]|5[5689]|7[06789]|8[0-7689]|9[0-46-9])[0-9]{7}$")
@@ -23,4 +25,23 @@ def normalize_phone_number(phone: str) -> str:
     if phone.startswith("84"):
         return "0" + phone[2:]
 
-    return phone 
+    return phone
+
+
+def get_valid_date(date_input: Optional[Union[str, date]]) -> date:
+    """
+    Validate a date input. Nếu giá trị truyền vào là một đối tượng date hoặc chuỗi theo định dạng 'YYYY-MM-DD',
+    hàm sẽ trả về đối tượng date tương ứng. Nếu không hợp lệ hoặc không có giá trị, sẽ trả về date.today().
+    """
+    if date_input is None:
+        return date.today()
+
+    if isinstance(date_input, date):
+        return date_input
+
+    try:
+        # Nếu date_input là chuỗi, thử chuyển đổi theo định dạng 'YYYY-MM-DD'
+        return datetime.strptime(date_input, '%Y-%m-%d').date()
+    except ValueError:
+        # Nếu chuyển đổi thất bại, trả về ngày hiện tại
+        return date.today()

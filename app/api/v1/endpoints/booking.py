@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Query, Depends, HTTPException
+from fastapi import APIRouter, Query, Depends, HTTPException, Request
 from app.database.db import get_db
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.services.v1 import handle_booking
@@ -44,13 +44,13 @@ async def booking_phone_number_for_option(
 
 
 @router.post("")
-async def booking(booking : BookingRequest, db: AsyncSession = Depends(get_db)):
+async def booking(booking : BookingRequest, request: Request, db: AsyncSession = Depends(get_db)):
     try:
         if len(booking.dict()['id_phone_numbers']) <= 0:
             raise HTTPException(status_code=404, detail="No phone numbers available")
-        return await asyncio.wait_for(handle_booking.add_booking_in_booking_history(booking.dict(), db), timeout=5.0)
+        return await asyncio.wait_for(handle_booking.add_booking_in_booking_history(booking.dict(), request, db), timeout=10)
     except asyncio.TimeoutError:
-        raise HTTPException(status_code=408, detail="Request timed out (processing took over 5 seconds)")
+        raise HTTPException(status_code=408, detail="Request timed out (processing took over 10 seconds)")
 
 
 

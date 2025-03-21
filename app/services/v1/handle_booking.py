@@ -1,14 +1,18 @@
 import math
-from fastapi import  HTTPException
 from http import HTTPStatus
-from sqlalchemy.orm import joinedload
+
+from fastapi import HTTPException
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import aliased
-from sqlalchemy.ext.asyncio import AsyncSession
-from app.database.models import PhoneNumber, Provider, BookingHistory
+from sqlalchemy.orm import joinedload
 from sqlalchemy.sql import func
-from datetime import datetime
-from sqlalchemy.exc import SQLAlchemyError
+from app.database.models import PhoneNumber, Provider, BookingHistory
+from app.utils.utils_token import exact_token
+from app.services.v1.telegram import TelegramBot
+
+
 async def get_booking_by_params(filter: str, telco: str, limit, offset, db: AsyncSession):
     provider_alias = aliased(Provider)  # Tạo alias tránh xung đột
 
@@ -120,13 +124,13 @@ async def get_booking_phone_number_for_option(quantity, option, db, offset):
     }
 
 
-async def add_booking_in_booking_history(bookingData, db: AsyncSession):
+async def add_booking_in_booking_history(bookingData, request, db: AsyncSession):
     try:
         async with db.begin():  # Mở transaction toàn bộ danh sách
-            new_booking_histories = []
+            booked_phone_numbers = []  # Danh sách số điện thoại đã đặt
 
             for id_phone_number in bookingData["id_phone_numbers"]:
-                #  Truy vấn và khóa số điện thoại để tránh đặt trùng
+                # Truy vấn và khóa số điện thoại để tránh đặt trùng
                 query = (
                     select(PhoneNumber)
                     .where(PhoneNumber.id == id_phone_number, PhoneNumber.status == "available")
@@ -147,16 +151,25 @@ async def add_booking_in_booking_history(bookingData, db: AsyncSession):
                     phone_number_id=id_phone_number,
                 )
                 db.add(new_booking)
-                new_booking_histories.append(new_booking)
+                booked_phone_numbers.append(phone_number.phone_number)  # Lưu số điện thoại
 
             # Lưu toàn bộ booking chỉ khi không có lỗi
             await db.commit()
+
+            # Gửi thông báo Telegram với số điện thoại đã đặt
+            data_token = exact_token(request)
+            bot = TelegramBot(token="7542957200:AAEDOMCOnqDbZsf_N7fTva00hjZM4YCZtAc")
+            message = f"Booking thành công:\nHọ tên người book: {data_token['user_name']}\nSố điện thoại: {', '.join(booked_phone_numbers)}"
+            bot.send_message(chat_id="7045187975", message=message)
+
             return {
                 "status": 200,
-                "message": "Booking phone_number successfully",
-                "booking_histories": new_booking_histories,
+                "message": "Booking phone_number successfully"
             }
 
     except SQLAlchemyError as e:
-        await db.rollback()  # Nếu có lỗi, rollback để không lưu bất kỳ số nào
+        await db.rollback()
         raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(e))
+
+
+

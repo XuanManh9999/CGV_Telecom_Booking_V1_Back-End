@@ -1,13 +1,13 @@
-import uvicorn
 from fastapi import FastAPI, Depends
-from app.api.v1.endpoints import booking
-from app.api.v1.endpoints import phone_number
-from app.api.v1.endpoints import type_number
-from app.api.v1.endpoints import provider
-from app.middleware.config import CustomMiddleware
 from fastapi.middleware.cors import CORSMiddleware
 from app.api.v1.endpoints import auth
+from app.api.v1.endpoints import booking
+from app.api.v1.endpoints import phone_number
+from app.api.v1.endpoints import provider
+from app.api.v1.endpoints import type_number
+from app.api.v1.endpoints import report
 from app.services.v1.handle_authetication import verify_access_token
+
 app = FastAPI()
 
 #api không cần xác thực
@@ -19,15 +19,12 @@ protected_routers = [
     booking.router,
     phone_number.router,
     type_number.router,
-    provider.router
+    provider.router,
+    report.router
 ]
 
 for router in protected_routers:
     app.include_router(router, prefix="/api/v1", dependencies=[Depends(verify_access_token)])
-# app.include_router(booking.router, prefix="/api/v1", tags=["Booking"])
-# app.include_router(phone_number.router, prefix="/api/v1", tags=["PhoneNumber"])
-# app.include_router(type_number.router, prefix="/api/v1", tags=["TypeNumber"])
-# app.include_router(provider.router, prefix="/api/v1", tags=["Provider"])
 
 
 # app.add_middleware(CustomMiddleware)
@@ -43,6 +40,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 @app.get("/")
 def root():

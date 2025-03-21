@@ -68,8 +68,6 @@ def authenticate_user(username: str, password: str):
             "role": user_record[3],
             "chat_id": user_record[4]
         }
-        print(user)
-
         return user
 
     except cx_Oracle.Error as error:
@@ -119,12 +117,8 @@ def verify_access_token(request: Request):
             raise HTTPException(status_code=401, detail="Authentication error")
         token = parts[1]
 
-
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         username: str = payload.get("sub")
-        exp: int = payload.get("exp")
-
-
 
         if username is None:
             raise HTTPException(
@@ -133,16 +127,13 @@ def verify_access_token(request: Request):
                 headers={"WWW-Authenticate": "Bearer"},
             )
 
-        # Kiểm tra token đã hết hạn hay chưa
-        if exp < datetime.utcnow().timestamp():
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Token has expired",
-                headers={"WWW-Authenticate": "Bearer"},
-            )
-
         return username
-
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token has expired",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     except JWTError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
