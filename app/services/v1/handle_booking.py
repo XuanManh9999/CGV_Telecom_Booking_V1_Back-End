@@ -11,6 +11,7 @@ from sqlalchemy.sql import func
 from app.database.models import PhoneNumber, Provider, BookingHistory
 from app.utils.utils_token import exact_token
 from app.services.v1.telegram import TelegramBot
+from app.core.config import TelegramConfig
 
 
 async def get_booking_by_params(filter: str, telco: str, limit, offset, db: AsyncSession):
@@ -125,6 +126,7 @@ async def get_booking_phone_number_for_option(quantity, option, db, offset):
 
 
 async def add_booking_in_booking_history(bookingData, request, db: AsyncSession):
+    username = exact_token(request)["user_name"]
     try:
         async with db.begin():  # Mở transaction toàn bộ danh sách
             booked_phone_numbers = []  # Danh sách số điện thoại đã đặt
@@ -141,13 +143,13 @@ async def add_booking_in_booking_history(bookingData, request, db: AsyncSession)
 
                 if not phone_number:
                     raise HTTPException(
-                        status_code=HTTPStatus.NOT_FOUND,
-                        detail=f"Phone number id {id_phone_number} not found or booked"
+                        detail=f"Phone number id {id_phone_number} not found or booked",
+                        status_code=HTTPStatus.NOT_FOUND
                     )
 
                 # Thêm booking history
                 new_booking = BookingHistory(
-                    user_name=bookingData["user_name"],
+                    user_name=username,
                     phone_number_id=id_phone_number,
                 )
                 db.add(new_booking)
@@ -157,10 +159,9 @@ async def add_booking_in_booking_history(bookingData, request, db: AsyncSession)
             await db.commit()
 
             # Gửi thông báo Telegram với số điện thoại đã đặt
-            data_token = exact_token(request)
-            bot = TelegramBot(token="7542957200:AAEDOMCOnqDbZsf_N7fTva00hjZM4YCZtAc")
-            message = f"Booking thành công:\nHọ tên người book: {data_token['user_name']}\nSố điện thoại: {', '.join(booked_phone_numbers)}"
-            bot.send_message(chat_id="7045187975", message=message)
+            bot = TelegramBot(token=TelegramConfig.get("TOKEN_TELEGRAM"))
+            message = f"Booking thành công:\nHọ tên người book: {username}\nSố điện thoại: {', '.join(booked_phone_numbers)}"
+            bot.send_message(chat_id=TelegramConfig.get("CHAT_ID"), message=message)
 
             return {
                 "status": 200,

@@ -29,7 +29,9 @@ TelegramConfig = {
     'SALE_TOKEN': os.getenv("SALE_TOKEN"),   #@CGVSaleBot
     'TECH_GROUP_ID': int(os.getenv("TECH_GROUP_ID")),  #Monitor_group
     'MAX_RETRIES': int(os.getenv("MAX_RETRIES")), #Số lần retry khi gửi tin nhắn
-    'RETRY_DELAY': int(os.getenv("RETRY_DELAY")) #Thời gian delay giữa các lần retry
+    'RETRY_DELAY': int(os.getenv("RETRY_DELAY")), #Thời gian delay giữa các lần retry
+    'TOKEN_TELEGRAM': os.getenv("TOKEN_TELEGRAM"),
+    'CHAT_ID': int(os.getenv("CHAT_ID")),
 }
 
 
