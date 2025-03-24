@@ -96,6 +96,7 @@ async def get_booking_report_by_user(
             BookingHistory.phone_number_id == PhoneNumber.id,
         ))
         .where(and_(
+            PhoneNumber.active == 1,
             PhoneNumber.status == option,
             *date_filters
         ))
@@ -128,6 +129,7 @@ async def get_booking_report_by_user(
             BookingHistory.phone_number_id == PhoneNumber.id,
         ))
         .where(and_(
+            PhoneNumber.active == 1,
             PhoneNumber.status == option,
             *date_filters
         ))
@@ -177,6 +179,7 @@ async def get_booking_report_by_role(
         .join(TypeNumber, PhoneNumber.type_id == TypeNumber.id)
         .join(BookingHistory, PhoneNumber.id == BookingHistory.phone_number_id)
         .where(and_(
+            PhoneNumber.active == 1,
             PhoneNumber.status == option,
             *date_filters
         ))
@@ -206,6 +209,7 @@ async def get_booking_report_by_role(
         .join(TypeNumber, PhoneNumber.type_id == TypeNumber.id)
         .join(BookingHistory, PhoneNumber.id == BookingHistory.phone_number_id)
         .where(and_(
+            PhoneNumber.active == 1,
             PhoneNumber.status == option,
             *date_filters
         ))

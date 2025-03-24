@@ -1,7 +1,6 @@
 from datetime import datetime
 from http import HTTPStatus
 from io import BytesIO
-
 import pandas as pd
 from fastapi import UploadFile, HTTPException
 from fastapi.responses import JSONResponse
@@ -13,7 +12,8 @@ from app.database.models import Provider, TypeNumber, PhoneNumber
 from app.services.v1.handle_provider import get_provider_by_id
 from app.services.v1.handle_type_number import get_type_number_by_id
 from app.utils import utils_regex
-
+from app.schemas.phone_number import PhoneNumberUpdate
+from sqlalchemy import and_
 
 async def process_excel_file(file: UploadFile, db: AsyncSession):
     if not utils_regex.is_excel_file(file.filename):
@@ -169,7 +169,7 @@ async def get_phone_number_by_id (phone_number_id, db: AsyncSession):
         select(PhoneNumber, TypeNumber, Provider)
         .join(TypeNumber, PhoneNumber.type_id == TypeNumber.id)
         .join(Provider, PhoneNumber.provider_id == Provider.id)
-        .filter(PhoneNumber.id == phone_number_id, PhoneNumber.active == 1)
+        .filter( PhoneNumber.id == phone_number_id, PhoneNumber.active == 1)
     )
     row = result.first()
 
@@ -247,3 +247,43 @@ async def create_phone_number(phone_number_client, db: AsyncSession):
     except Exception as exc:
         await db.rollback()
         raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(exc))
+
+
+
+async def update_phone_number(phone_number_client, phone_id : int, db : AsyncSession):
+
+    await get_provider_by_id(phone_number_client.provider_id, db)
+    await get_type_number_by_id(phone_number_client.type_id, db)
+    result_frame = await db.execute(
+        select(PhoneNumber).where(and_(
+            PhoneNumber.id == phone_id,
+            PhoneNumber.active == 1)
+        ))
+    result = result_frame.scalars().first()
+    if not result:
+        raise HTTPException(status_code=404, detail="Phone number not found or inactive")
+
+    result.phone_number = phone_number_client.phone_number
+    result.type_id = phone_number_client.type_id
+    result.provider_id = phone_number_client.provider_id
+    result.maintenance_fee = phone_number_client.maintenance_fee
+    result.installation_fee = phone_number_client.installation_fee
+    result.vanity_number_fee = phone_number_client.vanity_number_fee
+    await db.commit()
+    await db.refresh(result)
+    return result
+
+
+async def delete_phone_number(phone_id, db : AsyncSession):
+    result_frame = await db.execute(
+        select(PhoneNumber).where(and_(
+            PhoneNumber.id == phone_id,
+            PhoneNumber.active == 1)
+        ))
+    result = result_frame.scalars().first()
+    if not result:
+        raise HTTPException(status_code=404, detail="Phone number not found or inactive")
+
+    result.active = 0
+    await db.commit()
+    return {"message": "PhoneNumber deleted successfully"}

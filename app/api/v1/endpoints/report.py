@@ -1,11 +1,8 @@
-from datetime import date
-
 from fastapi import APIRouter, Depends, Request, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database.db import get_db
 from app.services.v1 import handle_report
-from app.utils.utils_regex import get_valid_date
 
 router = APIRouter(
     prefix="/report",
