@@ -6,6 +6,7 @@ from app.api.v1.endpoints import phone_number
 from app.api.v1.endpoints import provider
 from app.api.v1.endpoints import type_number
 from app.api.v1.endpoints import report
+from app.api.v1.endpoints import token_jwt
 from app.services.v1.handle_authetication import verify_access_token
 
 app = FastAPI()
@@ -20,7 +21,8 @@ protected_routers = [
     phone_number.router,
     type_number.router,
     provider.router,
-    report.router
+    report.router,
+    token_jwt.router
 ]
 
 for router in protected_routers:
