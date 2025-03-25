@@ -33,6 +33,7 @@ for router in protected_routers:
 
 origins = [
     "http://localhost:5173",
+    "http://13.229.236.236:5173"
 ]
 
 app.add_middleware(

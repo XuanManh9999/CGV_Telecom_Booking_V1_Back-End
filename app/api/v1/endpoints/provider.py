@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database.db import get_db
@@ -16,13 +16,13 @@ async def get_provider_by_id(provider_id  : int, db: AsyncSession = Depends(get_
     return await handle_provider.get_provider_by_id(provider_id=provider_id, db=db)
 
 @router.post("", response_model=ProviderCreate)
-async def create_provider(provider: ProviderCreate, db: AsyncSession = Depends(get_db)):
-    return await handle_provider.create_provider(db=db, provider=provider)
+async def create_provider(request : Request, provider: ProviderCreate, db: AsyncSession = Depends(get_db)):
+    return await handle_provider.create_provider(request, db=db, provider=provider)
 
 @router.put("/provider-by-id", response_model=ProviderResponse)
-async def update_provider_by_id(provider_id: int, provider : ProviderUpdate, db: AsyncSession = Depends(get_db)):
-    return await handle_provider.update_provider_by_id(provider_id=provider_id, db=db, providerUpdate=provider)
+async def update_provider_by_id(request : Request, provider_id: int, provider : ProviderUpdate, db: AsyncSession = Depends(get_db)):
+    return await handle_provider.update_provider_by_id(request, provider_id=provider_id, db=db, providerUpdate=provider)
 
 @router.delete("/{provider_id}")
-async def delete_provider_by_id(provider_id : int, db: AsyncSession = Depends(get_db)):
-    return await handle_provider.delete_provider_by_id(provider_id=provider_id, db=db)
+async def delete_provider_by_id(request : Request, provider_id : int, db: AsyncSession = Depends(get_db)):
+    return await handle_provider.delete_provider_by_id(request, provider_id=provider_id, db=db)

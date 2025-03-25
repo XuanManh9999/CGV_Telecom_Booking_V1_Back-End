@@ -1,21 +1,25 @@
 from datetime import datetime
 from http import HTTPStatus
 from io import BytesIO
+
 import pandas as pd
 from fastapi import UploadFile, HTTPException
 from fastapi.responses import JSONResponse
+from sqlalchemy import and_
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.sql import func
+
 from app.database.models import Provider, TypeNumber, PhoneNumber
 from app.services.v1.handle_provider import get_provider_by_id
 from app.services.v1.handle_type_number import get_type_number_by_id
 from app.utils import utils_regex
-from app.schemas.phone_number import PhoneNumberUpdate
-from sqlalchemy import and_
+from app.utils.utils_token import  is_role_admin
 
-async def process_excel_file(file: UploadFile, db: AsyncSession):
+
+async def process_excel_file(request, file: UploadFile, db: AsyncSession):
+    is_role_admin(request)
     if not utils_regex.is_excel_file(file.filename):
         raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail="File must be an Excel (.xlsx) file.")
 
@@ -81,7 +85,7 @@ async def process_excel_file(file: UploadFile, db: AsyncSession):
     except Exception as e:
         raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(e))
 
-
+# hàm phụ của process_excel_file
 async def handle_add_phone_number(data, db: AsyncSession):
     update_config = []
 
@@ -179,12 +183,19 @@ async def get_phone_number_by_id (phone_number_id, db: AsyncSession):
     phone_number, type_number, provider = row
     return {
         "phone_number_id": phone_number.id,
-        "name_provider": provider.name,
-        "type_number": type_number.name,
+        "provider_id": provider.id,
+        "type_number_id": type_number.id,
+        "status": phone_number.status,
+        "phone_number": phone_number.phone_number,
+        "installation_fee": phone_number.installation_fee,
+        "maintenance_fee": phone_number.maintenance_fee,
+        "vanity_number_fee": phone_number.vanity_number_fee,
+        "booking_expiration": type_number.booking_expiration
     }
 
-async def create_phone_number(phone_number_client, db: AsyncSession):
+async def create_phone_number(request, phone_number_client, db: AsyncSession):
     try:
+        is_role_admin(request)
         await get_type_number_by_id(phone_number_client.type_id, db)
         await get_provider_by_id(phone_number_client.provider_id, db)
 
@@ -249,11 +260,12 @@ async def create_phone_number(phone_number_client, db: AsyncSession):
         raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(exc))
 
 
-
-async def update_phone_number(phone_number_client, phone_id : int, db : AsyncSession):
-
+async def update_phone_number(request, phone_number_client, phone_id : int, db : AsyncSession):
+    is_role_admin(request)
     await get_provider_by_id(phone_number_client.provider_id, db)
     await get_type_number_by_id(phone_number_client.type_id, db)
+
+
     result_frame = await db.execute(
         select(PhoneNumber).where(and_(
             PhoneNumber.id == phone_id,
@@ -274,7 +286,8 @@ async def update_phone_number(phone_number_client, phone_id : int, db : AsyncSes
     return result
 
 
-async def delete_phone_number(phone_id, db : AsyncSession):
+async def delete_phone_number(request, phone_id, db : AsyncSession):
+    is_role_admin(request)
     result_frame = await db.execute(
         select(PhoneNumber).where(and_(
             PhoneNumber.id == phone_id,

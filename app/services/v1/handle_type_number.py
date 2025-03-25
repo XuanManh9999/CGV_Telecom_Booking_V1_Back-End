@@ -4,6 +4,7 @@ from sqlalchemy.future import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql import func
 from app.database.models import TypeNumber
+from app.utils.utils_token import is_role_admin
 
 
 async def get_type_numbers (db: AsyncSession):
@@ -19,7 +20,8 @@ async def get_type_number_by_id(type_number_id, db: AsyncSession):
     type_number = result.scalars().first()
     return type_number
 
-async def create_type_number(db: AsyncSession, type_number_client):
+async def create_type_number(request, db: AsyncSession, type_number_client):
+    is_role_admin(request)
     if  type_number_client.name == "":
         raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail="name cannot be empty")
 
@@ -48,7 +50,8 @@ async def create_type_number(db: AsyncSession, type_number_client):
     return new_type_number
 
 
-async def update_type_number_by_id(type_number_id, type_number_client, db: AsyncSession):
+async def update_type_number_by_id(request, type_number_id, type_number_client, db: AsyncSession):
+    is_role_admin(request)
     if type_number_client.name == "":
         raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail="name cannot be empty")
 
@@ -69,7 +72,8 @@ async def update_type_number_by_id(type_number_id, type_number_client, db: Async
     await db.refresh(result)
     return result
 
-async def delete_type_number_by_id(type_number_id, db: AsyncSession):
+async def delete_type_number_by_id(request, type_number_id, db: AsyncSession):
+    is_role_admin(request)
     result = await get_type_number_by_id(type_number_id, db)
     if result is None:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Type number not found")

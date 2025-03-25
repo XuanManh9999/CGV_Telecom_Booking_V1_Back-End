@@ -6,10 +6,10 @@ from sqlalchemy import and_
 from sqlalchemy.sql import func, extract
 import math
 from app.database.models import PhoneNumber, Provider, BookingHistory, TypeNumber
-from app.utils.utils_token import exact_token
+from app.utils.utils_token import exact_token, is_role_admin
 
 
-async def get_dartboard(year, month, day, db: AsyncSession):
+async def get_dashboard(year, month, day, db: AsyncSession):
     # Điều kiện cho khoảng thời gian (cho booked_at)
     conditions_booked = [
         extract('year', BookingHistory.booked_at) == year,
@@ -64,7 +64,7 @@ async def get_dartboard(year, month, day, db: AsyncSession):
     }
 
 
-
+# get book theo người dùng
 async def get_booking_report_by_user(
     request, option, year=None, month=None, day=None, limit=20, offset=0, db=None
 ):
@@ -149,11 +149,7 @@ async def get_booking_report_by_user(
 async def get_booking_report_by_role(
     request, option, year=None, month=None, day=None, limit=20, offset=0, db=None
 ):
-    role = exact_token(request)["role"]
-
-    # Nếu role không hợp lệ hoặc không phải admin
-    if role is None or role == 2:
-        raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="Bạn không có quyền truy cập tài nguyên này.")
+    is_role_admin(request)
 
     # Xác định cột ngày dựa trên option
     date_column = None

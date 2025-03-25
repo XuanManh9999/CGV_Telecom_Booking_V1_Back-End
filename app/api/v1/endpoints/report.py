@@ -22,9 +22,9 @@ async def get_booking_by_user(request :  Request,
     return await handle_report.get_booking_report_by_user(request, option, year, month, day, limit, offset,  db)
 
 
-@router.get("/dartboard")
-async def get_dartboard(year : int, month : int, day : int | None = None, db: AsyncSession = Depends(get_db)):
-    return await handle_report.get_dartboard(year, month, day, db=db)
+@router.get("/dashboard")
+async def get_dashboard(year : int, month : int, day : int | None = None, db: AsyncSession = Depends(get_db)):
+    return await handle_report.get_dashboard(year, month, day, db=db)
 
 # extract role người người dùng để xem chi tiết nếu là 1 là admin thì đc xem 0 thì không cho xem
 @router.get("/detail-report-by-role")

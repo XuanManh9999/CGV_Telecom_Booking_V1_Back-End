@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.sql import func
 from app.database.models import Provider
+from app.utils.utils_token import is_role_admin
 
 
 async def get_providers(db: AsyncSession):
@@ -22,10 +23,10 @@ async def get_provider_by_id(provider_id, db: AsyncSession):
     return provider
 
 
-async def create_provider(db: AsyncSession, provider):
+async def create_provider(request, db: AsyncSession, provider):
+        is_role_admin(request)
         if provider.name == "" or provider.description == "":
             raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail="name/description cannot be empty")
-
 
         # check xem co name do chua
         result = await db.execute(select(Provider).where(func.upper(Provider.name)  == func.upper(provider.name), Provider.active == 1))
@@ -40,7 +41,8 @@ async def create_provider(db: AsyncSession, provider):
         return new_provider
 
 
-async def update_provider_by_id(provider_id, db: AsyncSession, providerUpdate):
+async def update_provider_by_id(request, provider_id, db: AsyncSession, providerUpdate):
+    is_role_admin(request)
     if providerUpdate.name == "":
         raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail="name cannot be empty")
 
@@ -58,7 +60,8 @@ async def update_provider_by_id(provider_id, db: AsyncSession, providerUpdate):
     await db.refresh(provider)
     return provider
 
-async def delete_provider_by_id(provider_id, db: AsyncSession):
+async def delete_provider_by_id(request, provider_id, db: AsyncSession):
+    is_role_admin(request)
     provider = await get_provider_by_id(provider_id, db)
     if provider is None:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Provider ID is not found")
