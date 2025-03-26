@@ -190,7 +190,7 @@ async def get_phone_number_by_id (phone_number_id, db: AsyncSession):
         "installation_fee": phone_number.installation_fee,
         "maintenance_fee": phone_number.maintenance_fee,
         "vanity_number_fee": phone_number.vanity_number_fee,
-        "booking_expiration": type_number.booking_expiration
+        "booked_until": phone_number.booked_until
     }
 
 async def create_phone_number(request, phone_number_client, db: AsyncSession):

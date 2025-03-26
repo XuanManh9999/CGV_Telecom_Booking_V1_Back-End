@@ -35,7 +35,7 @@ async def get_dashboard(year, month, day, db: AsyncSession):
     )
     query_not_booked = (
         select(func.count(PhoneNumber.id))
-        .where(PhoneNumber.active == 1)
+        .where(PhoneNumber.active == 1, PhoneNumber.status == "available")
         .where(~PhoneNumber.id.in_(subquery))
     )
     not_booked_result = await db.execute(query_not_booked)
