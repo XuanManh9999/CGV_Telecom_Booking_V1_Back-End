@@ -27,19 +27,19 @@ async def get_dashboard(year, month, day, db: AsyncSession):
     booked_result = await db.execute(query_booked)
     booked_count = booked_result.scalar() or 0
 
-    # 2. Thống kê số chưa được book trong khoảng thời gian truyền vào:
-    subquery = (
-        select(BookingHistory.phone_number_id)
-        .where(and_(*conditions_booked))
-        .distinct()
-    )
-    query_not_booked = (
-        select(func.count(PhoneNumber.id))
-        .where(PhoneNumber.active == 1, PhoneNumber.status == "available")
-        .where(~PhoneNumber.id.in_(subquery))
-    )
-    not_booked_result = await db.execute(query_not_booked)
-    not_booked_count = not_booked_result.scalar() or 0
+    # # 2. Thống kê số chưa được book trong khoảng thời gian truyền vào:
+    # subquery = (
+    #     select(BookingHistory.phone_number_id)
+    #     .where(and_(*conditions_booked))
+    #     .distinct()
+    # )
+    # query_not_booked = (
+    #     select(func.count(PhoneNumber.id))
+    #     .where(PhoneNumber.active == 1, PhoneNumber.status == "available")
+    #     .where(~PhoneNumber.id.in_(subquery))
+    # )
+    # not_booked_result = await db.execute(query_not_booked)
+    # not_booked_count = not_booked_result.scalar() or 0
 
     # 3. Thống kê số đã được triển khai trong khoảng thời gian (dựa vào released_at)
     conditions_deployed = [
@@ -59,7 +59,7 @@ async def get_dashboard(year, month, day, db: AsyncSession):
 
     return {
         "booked": booked_count,
-        "not_booked": not_booked_count,
+        # "not_booked": not_booked_count,
         "deployed": deployed_count,
     }
 
@@ -199,7 +199,9 @@ async def get_booking_report_by_role(
             PhoneNumber.active,
             PhoneNumber.maintenance_fee,
             Provider.name.label("provider_name"),
-            TypeNumber.name.label("type_name")
+            TypeNumber.name.label("type_name"),
+            BookingHistory.booked_at,
+            BookingHistory.released_at
         )
         .join(Provider, PhoneNumber.provider_id == Provider.id)
         .join(TypeNumber, PhoneNumber.type_id == TypeNumber.id)

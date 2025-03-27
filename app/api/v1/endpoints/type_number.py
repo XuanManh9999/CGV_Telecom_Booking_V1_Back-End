@@ -5,7 +5,7 @@ from app.database.db import get_db
 from app.schemas.type_number import TypeNumberUpdate, TypeNumberCreate, TypeNumberResponse
 from app.services.v1 import handle_type_number
 
-router = APIRouter(prefix="/type_number")
+router = APIRouter(prefix="/type_number", tags=["TypeNumber"])
 
 @router.get("/alls", response_model=list[TypeNumberResponse])
 async def get_type_numbers(db: AsyncSession = Depends(get_db)):
