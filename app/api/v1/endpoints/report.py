@@ -36,3 +36,5 @@ async def get_booking_report_by_role(request : Request, option : str,
                                      day : int | None = None,
                                      db: AsyncSession = Depends(get_db)):
     return await handle_report.get_booking_report_by_role(request, option, year, month, day, limit, offset, db)
+
+

@@ -15,7 +15,19 @@ from app.database.models import Provider, TypeNumber, PhoneNumber
 from app.services.v1.handle_provider import get_provider_by_id
 from app.services.v1.handle_type_number import get_type_number_by_id
 from app.utils import utils_regex
-from app.utils.utils_token import  is_role_admin
+from app.utils.utils_token import is_role_admin
+
+
+async def get_phone_number_available_quantity(db):
+    result = await db.execute(
+        select(func.count(PhoneNumber.id)).where(
+            PhoneNumber.status == "available",
+            PhoneNumber.active == 1
+        )
+    )
+    return {
+        "quantity_available": result.scalar()
+    }
 
 
 async def process_excel_file(request, file: UploadFile, db: AsyncSession):

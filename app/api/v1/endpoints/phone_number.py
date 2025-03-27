@@ -11,6 +11,11 @@ router = APIRouter(prefix="/phone", tags=["PhoneNumber"])
 async def get_phone_number_by_id(phone_id : int, db: AsyncSession = Depends(get_db)):
     return await handle_phone_number.get_phone_number_by_id(phone_id, db)
 
+@router.get("/quantity-available")
+async def get_phone_number_available_quantity(db: AsyncSession = Depends(get_db)):
+    return await handle_phone_number.get_phone_number_available_quantity(db)
+
+
 @router.post("/upload-phone-number")
 async def read_file(request : Request, file: UploadFile = File(...), db: AsyncSession = Depends(get_db)):
     return await handle_phone_number.process_excel_file(request, file, db)
