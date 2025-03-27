@@ -135,7 +135,7 @@ async def get_booking_report_by_user(
         ))
         .distinct()
         .limit(limit)
-        .offset(offset)
+        .offset(offset * limit)
     )
 
     result_frame = await db.execute(query)
@@ -213,7 +213,7 @@ async def get_booking_report_by_role(
         ))
         .distinct()
         .limit(limit)
-        .offset(offset)
+        .offset(offset * limit)
     )
 
     result_frame = await db.execute(query)
