@@ -9,14 +9,14 @@ from sqlalchemy import and_
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from sqlalchemy.sql import func
+from sqlalchemy.sql import func, extract
 
 from app.database.models import Provider, TypeNumber, PhoneNumber
 from app.services.v1.handle_provider import get_provider_by_id
 from app.services.v1.handle_type_number import get_type_number_by_id
 from app.utils import utils_regex
 from app.utils.utils_token import is_role_admin
-
+import calendar
 
 async def get_phone_number_available_quantity(db):
     result = await db.execute(
@@ -28,6 +28,36 @@ async def get_phone_number_available_quantity(db):
     return {
         "quantity_available": result.scalar()
     }
+
+
+async def get_report_phone_number_by_time(year, month, day,  db: AsyncSession):
+    conditions = [extract('year', PhoneNumber.created_at) == year]
+
+    if month is not None:
+        conditions.append(extract('month', PhoneNumber.created_at) == month)
+
+    if day is not None:
+        conditions.append(extract('day', PhoneNumber.created_at) == day)
+
+
+    # Xác định nhóm theo tháng hoặc ngày
+    group_by_column = extract('month', PhoneNumber.created_at) if month is None else extract('day', PhoneNumber.created_at)
+
+    query = select(
+        group_by_column,
+        func.count(PhoneNumber.id)
+    ).where(*conditions).group_by(group_by_column)
+
+    result = await db.execute(query)
+    data = dict(result.all())
+
+    if month is None:
+        return {m: data.get(m, 0) for m in range(1, 13)}
+    else:
+        max_day = calendar.monthrange(year, month)[1]
+        return {d: data.get(d, 0) for d in range(1, max_day + 1)}
+
+
 
 
 async def process_excel_file(request, file: UploadFile, db: AsyncSession):
@@ -60,7 +90,6 @@ async def process_excel_file(request, file: UploadFile, db: AsyncSession):
         for index, row in df.iterrows():
             error_messages = []
             phone = utils_regex.normalize_phone_number(str(row["phone"]).strip())
-
             if not utils_regex.is_valid_phone(phone):
                 error_messages.append("Số điện thoại không hợp lệ.")
 

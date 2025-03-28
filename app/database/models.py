@@ -63,5 +63,7 @@ class BookingHistory(Base):
     released_at = Column(TIMESTAMP)
     active = Column(Integer, default=1)
     status = Column(String(20), default='active')  # active, released, expired
+    contract_code = Column(String(255), default='')
+    user_name_release = Column(String(255), default='')
     phone_number = relationship("PhoneNumber", back_populates="booking_histories")
     # user = relationship("User", back_populates="booking_histories")

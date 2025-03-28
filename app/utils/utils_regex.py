@@ -3,7 +3,10 @@ from datetime import date, datetime
 from typing import Optional, Union
 
 # Regex patterns
-PHONE_REGEX = re.compile(r"^(0?)(3[2-9]|5[5689]|7[06789]|8[0-7689]|9[0-46-9])[0-9]{7}$")
+PHONE_REGEX = re.compile(
+    r"^(0?)(3[2-9]|5[5689]|7[06789]|8[0-7689]|9[0-46-9])[0-9]{7}$"
+    r"|^(02[0-9]{9})$"
+)
 EMAIL_REGEX = re.compile(r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$")
 EXCEL_REGEX = re.compile(r"^.*\.(xls|xlsx)$", re.IGNORECASE)
 
@@ -18,6 +21,9 @@ def is_excel_file(filename: str) -> bool:
 
 def normalize_phone_number(phone: str) -> str:
     phone = re.sub(r"\D", "", phone)  # Loại bỏ ký tự không phải số
+
+    if len(phone) == 10 and phone.startswith("2"):
+        return "0" + phone
 
     if len(phone) == 9:
         return "0" + phone

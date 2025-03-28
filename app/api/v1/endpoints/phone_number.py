@@ -1,4 +1,4 @@
-from fastapi import APIRouter, File, UploadFile, Depends, Request
+from fastapi import APIRouter, File, UploadFile, Depends, Request, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database.db import get_db
@@ -15,6 +15,11 @@ async def get_phone_number_by_id(phone_id : int, db: AsyncSession = Depends(get_
 async def get_phone_number_available_quantity(db: AsyncSession = Depends(get_db)):
     return await handle_phone_number.get_phone_number_available_quantity(db)
 
+@router.get("/report-phone-number-by-time")
+async def get_report_phone_number_by_time(year: int, month : int | None = None, day: int | None = None, db: AsyncSession = Depends(get_db)):
+    if (month is not None and  month > 12) or (day is not  None and day > 31):
+        raise HTTPException(status_code=400, detail="Invalid month or day")
+    return await handle_phone_number.get_report_phone_number_by_time(year=year, month=month, day=day, db=db)
 
 @router.post("/upload-phone-number")
 async def read_file(request : Request, file: UploadFile = File(...), db: AsyncSession = Depends(get_db)):
@@ -31,6 +36,8 @@ async def update_phone_number (request : Request, phone_number_client : PhoneNum
 @router.delete("")
 async def delete_phone_number(request : Request, phone_id : int, db: AsyncSession = Depends(get_db)):
     return await handle_phone_number.delete_phone_number(request, phone_id, db)
+
+
 
 
 

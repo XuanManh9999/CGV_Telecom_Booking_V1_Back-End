@@ -8,12 +8,12 @@ from app.schemas.provider import ProviderResponse, ProviderCreate, ProviderUpdat
 
 router = APIRouter(prefix="/provider", tags=["Provider"])
 @router.get("/all", response_model=list[ProviderResponse])
-async def get_providers(db: AsyncSession = Depends(get_db)):
-    return await handle_provider.get_providers(db=db)
+async def get_providers(request : Request, db: AsyncSession = Depends(get_db)):
+    return await handle_provider.get_providers(request, db=db)
 
 @router.get("/provider-by-id", response_model=ProviderResponse)
-async def get_provider_by_id(provider_id  : int, db: AsyncSession = Depends(get_db)):
-    return await handle_provider.get_provider_by_id(provider_id=provider_id, db=db)
+async def get_provider_by_id(provider_id  : int, request : Request, db: AsyncSession = Depends(get_db)):
+    return await handle_provider.get_provider_by_id(provider_id=provider_id,request=request  , db=db)
 
 @router.post("", response_model=ProviderCreate)
 async def create_provider(request : Request, provider: ProviderCreate, db: AsyncSession = Depends(get_db)):

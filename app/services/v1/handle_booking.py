@@ -7,11 +7,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import aliased
 from sqlalchemy.orm import joinedload
-from sqlalchemy.sql import func
+from sqlalchemy.sql import func, extract
 from app.database.models import PhoneNumber, Provider, BookingHistory
-from app.utils.utils_token import exact_token
+from app.utils.utils_token import exact_token, is_role_admin
 from app.services.v1.telegram import TelegramBot
 from app.core.config import TelegramConfig
+from sqlalchemy import and_
+from datetime import datetime
+import pandas as pd
 
 
 async def get_booking_by_params(filter: str, telco: str, limit, offset, db: AsyncSession):
@@ -171,6 +174,72 @@ async def add_booking_in_booking_history(bookingData, request, db: AsyncSession)
     except SQLAlchemyError as e:
         await db.rollback()
         raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(e))
+
+async def release_phone_number(releaseData, request, db: AsyncSession):
+    is_role_admin(request)
+
+    try:
+        async with db.begin():  # Mở transaction toàn bộ danh sách
+            issues = []
+            successes = []
+
+            for item in releaseData["data_releases"]:
+                # Tìm phone number hợp lệ
+                query = (
+                    select(PhoneNumber)
+                    .where(
+                        and_(
+                            PhoneNumber.phone_number == item["phone_number"],
+                            PhoneNumber.active == 1,
+                            PhoneNumber.status == "booked",
+                            PhoneNumber.booked_until.isnot(None),
+                            PhoneNumber.booked_until > datetime.utcnow(),
+                        )
+                    ) .with_for_update()
+                )
+                result = await db.execute(query)
+                phone_number = result.scalar_one_or_none()
+
+                if phone_number:
+                    # Cập nhật status trong bảng PhoneNumber
+                    phone_number.status = "released"
+                    db.add(phone_number)  # Đánh dấu cập nhật vào session
+
+                    # Tìm booking history tương ứng
+                    query_booking = (
+                        select(BookingHistory)
+                        .where(BookingHistory.phone_number_id == phone_number.id)
+                        .order_by(BookingHistory.booked_at.desc())  # Lấy bản ghi mới nhất
+                    )
+                    booking_result = await db.execute(query_booking)
+                    booking_history = booking_result.scalar_one_or_none()
+
+                    if booking_history:
+                        # Cập nhật thông tin trong bảng BookingHistory
+                        booking_history.contract_code = item.get("contract_code", "")
+                        booking_history.user_name_release = item.get("username", "")
+                        db.add(booking_history)  # Đánh dấu cập nhật
+
+                    successes.append(item)
+                else:
+                    issues.append(item)
+
+
+
+            await db.commit()  # Commit thay đổi vào DB
+            if issues:
+                df_issues = pd.DataFrame(issues)
+                bot = TelegramBot(token=TelegramConfig.get("TOKEN_TELEGRAM"))
+                message = f"Những số đã xảy ra vấn đề khi triển khai: \n"
+                bot.send_message(chat_id=TelegramConfig.get("CHAT_ID"), message=message)
+                bot.send_table(chat_id=TelegramConfig.get("CHAT_ID"), df=df_issues)
+            return {"success": successes, "issues": issues}
+
+    except SQLAlchemyError as e:
+        await db.rollback()
+        raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(e))
+
+
 
 
 

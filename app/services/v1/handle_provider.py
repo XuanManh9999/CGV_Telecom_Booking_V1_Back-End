@@ -6,22 +6,35 @@ from sqlalchemy.future import select
 from sqlalchemy.sql import func
 from app.database.models import Provider
 from app.utils.utils_token import is_role_admin
+from app.utils.utils_token import exact_token
 
 
-async def get_providers(db: AsyncSession):
+async def get_providers(request, db: AsyncSession):
+    role = exact_token(request)["role"]
+
+    # Lấy danh sách nhà cung cấp đang hoạt động
     result = await db.execute(select(Provider).where(Provider.active == 1))
     providers = result.scalars().all()
-    return providers
+
+    if role == 1:
+        return providers
+    else:
+        return [{"id": provider.id, "name": provider.name.split('_')[0], "description" : provider.description} for provider in providers]
 
 
-async def get_provider_by_id(provider_id, db: AsyncSession):
+async def get_provider_by_id(provider_id, request, db: AsyncSession):
+    role = exact_token(request)["role"]
+
     result = await db.execute(select(Provider).filter(Provider.id == provider_id, Provider.active == 1))
     provider = result.scalars().first()
+
     if not provider:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND.value, detail="Provider not found")
 
-    return provider
-
+    if role == 1:
+        return provider
+    else:
+        return {"id": provider.id, "name": provider.name.split("_")[0]}
 
 async def create_provider(request, db: AsyncSession, provider):
         is_role_admin(request)
