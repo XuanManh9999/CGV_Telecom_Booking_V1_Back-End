@@ -200,6 +200,8 @@ async def get_booking_report_by_role(
             PhoneNumber.maintenance_fee,
             Provider.name.label("provider_name"),
             TypeNumber.name.label("type_name"),
+            BookingHistory.contract_code,
+            BookingHistory.user_name_release,
             BookingHistory.booked_at,
             BookingHistory.released_at
         )

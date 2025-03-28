@@ -218,6 +218,7 @@ async def release_phone_number(releaseData, request, db: AsyncSession):
                         # Cập nhật thông tin trong bảng BookingHistory
                         booking_history.contract_code = item.get("contract_code", "")
                         booking_history.user_name_release = item.get("username", "")
+                        booking_history.released_at = datetime.now()
                         db.add(booking_history)  # Đánh dấu cập nhật
 
                     successes.append(item)
