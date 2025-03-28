@@ -1,6 +1,7 @@
 import math
 from http import HTTPStatus
-
+from sqlalchemy.sql import case, cast
+from sqlalchemy import BigInteger
 from fastapi import HTTPException
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -46,6 +47,9 @@ async def get_booking_by_params(filter: str, telco: str, limit, offset, db: Asyn
         .join(provider_alias, PhoneNumber.provider_id == provider_alias.id)  # JOIN bảng Provider
         .options(joinedload(PhoneNumber.provider), joinedload(PhoneNumber.type_number))  # Load quan hệ
         .where(PhoneNumber.status == "available", PhoneNumber.active == 1)
+        .order_by(
+            cast(PhoneNumber.phone_number, BigInteger)
+        )
     )
 
     if telco:
