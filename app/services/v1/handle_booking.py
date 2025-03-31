@@ -1,21 +1,23 @@
 import math
+from datetime import datetime
 from http import HTTPStatus
-from sqlalchemy.sql import case, cast
-from sqlalchemy import BigInteger
+
+import pandas as pd
 from fastapi import HTTPException
+from sqlalchemy import BigInteger
+from sqlalchemy import and_
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import aliased
 from sqlalchemy.orm import joinedload
-from sqlalchemy.sql import func, extract
-from app.database.models import PhoneNumber, Provider, BookingHistory
-from app.utils.utils_token import exact_token, is_role_admin
-from app.services.v1.telegram import TelegramBot
+from sqlalchemy.sql import cast
+from sqlalchemy.sql import func
+
 from app.core.config import TelegramConfig
-from sqlalchemy import and_
-from datetime import datetime
-import pandas as pd
+from app.database.models import PhoneNumber, Provider, BookingHistory
+from app.services.v1.telegram import TelegramBot
+from app.utils.utils_token import exact_token, is_role_admin
 
 
 async def get_booking_by_params(filter: str, telco: str, limit, offset, db: AsyncSession):
@@ -103,6 +105,9 @@ async def get_booking_phone_number_for_option(quantity, option, db, offset):
         .join(provider_alias, PhoneNumber.provider_id == provider_alias.id)  # JOIN bảng Provider
         .options(joinedload(PhoneNumber.provider), joinedload(PhoneNumber.type_number))  # Load quan hệ
         .where(PhoneNumber.status == option, PhoneNumber.active == 1)  # Lọc số chưa được book
+        .order_by(
+            cast(PhoneNumber.phone_number, BigInteger)
+        )
         .limit(quantity)
         .offset(offset * quantity)
     )
