@@ -219,6 +219,7 @@ async def release_phone_number(releaseData, request, db: AsyncSession):
                         select(BookingHistory)
                         .where(BookingHistory.phone_number_id == phone_number.id)
                         .order_by(BookingHistory.booked_at.desc())  # Lấy bản ghi mới nhất
+                        .limit(1)
                     )
                     booking_result = await db.execute(query_booking)
                     booking_history = booking_result.scalar_one_or_none()

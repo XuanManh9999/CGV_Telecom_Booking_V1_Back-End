@@ -1,3 +1,4 @@
+import calendar
 from datetime import datetime
 from http import HTTPStatus
 from io import BytesIO
@@ -16,7 +17,7 @@ from app.services.v1.handle_provider import get_provider_by_id
 from app.services.v1.handle_type_number import get_type_number_by_id
 from app.utils import utils_regex
 from app.utils.utils_token import is_role_admin
-import calendar
+
 
 async def get_phone_number_available_quantity(db):
     result = await db.execute(
@@ -340,8 +341,6 @@ async def delete_phone_number(request, phone_id, db : AsyncSession):
     await db.commit()
     return {"message": "PhoneNumber deleted successfully"}
 
-
-from sqlalchemy.exc import SQLAlchemyError
 
 async def liquidation_phone_number(request, phone_numbers, db: AsyncSession):
     is_role_admin(request)
