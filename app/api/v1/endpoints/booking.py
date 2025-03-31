@@ -1,4 +1,6 @@
 from fastapi import APIRouter, Query, Depends, HTTPException, Request
+from sqlalchemy.util import await_only
+
 from app.database.db import get_db
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.services.v1 import handle_booking
@@ -43,6 +45,14 @@ async def booking_phone_number_for_option(
         return await asyncio.wait_for(handle_booking.get_booking_phone_number_for_option(quantity, option, db, offset), timeout=20.0)
     except asyncio.TimeoutError:
         raise HTTPException(status_code=408, detail="Request timed out (processing took over 20 seconds)")
+
+
+@router.get("/booking-random-by-type-number-and-provider")
+async def booking_random(type_number_id : int, provider_id : int, request: Request, quantity_book : int | int = 50, db: AsyncSession = Depends(get_db)):
+    if quantity_book > 50:
+        quantity_book = 50
+    return await handle_booking.booking_random(type_number_id, provider_id, quantity_book, request, db)
+
 
 
 @router.post("")

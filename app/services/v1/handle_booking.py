@@ -15,7 +15,7 @@ from sqlalchemy.sql import cast
 from sqlalchemy.sql import func
 
 from app.core.config import TelegramConfig
-from app.database.models import PhoneNumber, Provider, BookingHistory
+from app.database.models import PhoneNumber, Provider, BookingHistory, TypeNumber
 from app.services.v1.telegram import TelegramBot
 from app.utils.utils_token import exact_token, is_role_admin
 
@@ -137,6 +137,81 @@ async def get_booking_phone_number_for_option(quantity, option, db, offset):
     }
 
 
+async def booking_random(type_number_id, provider_id, quantity_book, request, db: AsyncSession):
+    username = exact_token(request)["user_name"]
+
+    query = (
+        select(PhoneNumber)
+        .where(
+            and_(
+                PhoneNumber.status == "available",
+                PhoneNumber.active == 1,
+                PhoneNumber.provider_id == provider_id,
+                PhoneNumber.type_id == type_number_id
+            )
+        )
+        .order_by(cast(PhoneNumber.phone_number, BigInteger))
+        .limit(quantity_book)
+    )
+    result = await db.execute(query)
+    phone_numbers = result.scalars().all()
+    id_phone_numbers = [pn.id for pn in phone_numbers]
+
+
+    if len(id_phone_numbers) > 0:
+        try:
+            # Sử dụng nested transaction nếu session đã có transaction đang mở
+            trans_context = db.begin_nested() if db.in_transaction() else db.begin()
+            async with trans_context:
+                booked_phone_numbers = []  # Danh sách số điện thoại đã đặt
+
+                for id_phone_number in id_phone_numbers:
+                    query_lock = (
+                        select(PhoneNumber)
+                        .where(
+                            PhoneNumber.id == id_phone_number,
+                            PhoneNumber.status == "available"
+                        )
+                        .with_for_update()  # Khóa số điện thoại để tránh đặt trùng
+                    )
+                    result_lock = await db.execute(query_lock)
+                    phone_number = result_lock.scalar()
+
+                    if not phone_number:
+                        raise HTTPException(
+                            detail=f"Phone number id {id_phone_number} not found or booked",
+                            status_code=HTTPStatus.NOT_FOUND
+                        )
+
+                    # Thêm booking history
+                    new_booking = BookingHistory(
+                        user_name=username,
+                        phone_number_id=id_phone_number,
+                    )
+                    db.add(new_booking)
+                    booked_phone_numbers.append(phone_number.phone_number)  # Lưu số điện thoại đã đặt
+            # Khi thoát khỏi khối async with, transaction sẽ tự commit (hoặc nested transaction sẽ commit SAVEPOINT)
+
+            # Gửi thông báo Telegram sau khi transaction commit thành công
+            bot = TelegramBot(token=TelegramConfig.get("TOKEN_TELEGRAM"))
+            message = (
+                f"Booking random số thành công:\nHọ tên người book: {username}\n"
+                f"Số điện thoại: {', '.join(booked_phone_numbers)}"
+            )
+            bot.send_message(chat_id=TelegramConfig.get("CHAT_ID"), message=message)
+
+        except SQLAlchemyError as e:
+            # Nếu có lỗi, transaction (hoặc nested transaction) sẽ tự rollback
+            raise HTTPException(
+                status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
+                detail=str(e)
+            )
+
+    await db.commit()
+
+    return [pn.phone_number for pn in phone_numbers]
+
+
 async def add_booking_in_booking_history(bookingData, request, db: AsyncSession):
     username = exact_token(request)["user_name"]
     try:
@@ -184,9 +259,10 @@ async def add_booking_in_booking_history(bookingData, request, db: AsyncSession)
         await db.rollback()
         raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(e))
 
+
+
 async def release_phone_number(releaseData, request, db: AsyncSession):
     is_role_admin(request)
-
     try:
         async with db.begin():  # Mở transaction toàn bộ danh sách
             issues = []
@@ -203,7 +279,7 @@ async def release_phone_number(releaseData, request, db: AsyncSession):
                             PhoneNumber.status == "booked",
                             PhoneNumber.booked_until.isnot(None),
                             PhoneNumber.booked_until > datetime.utcnow(),
-                        )
+                            )
                     ) .with_for_update()
                 )
                 result = await db.execute(query)
