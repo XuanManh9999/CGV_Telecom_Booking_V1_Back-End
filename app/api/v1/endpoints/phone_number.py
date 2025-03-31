@@ -3,6 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database.db import get_db
 from app.schemas.phone_number import PhoneNumberResponse, PhoneNumberCreate, PhoneNumberUpdate
+from app.schemas.liquidation import LiquidationRequest
 from app.services.v1 import handle_phone_number
 
 router = APIRouter(prefix="/phone", tags=["PhoneNumber"])
@@ -29,6 +30,9 @@ async def read_file(request : Request, file: UploadFile = File(...), db: AsyncSe
 async def create_phone_number(request : Request, phone_number_client : PhoneNumberCreate,  db: AsyncSession = Depends(get_db)):
     return await handle_phone_number.create_phone_number(request, phone_number_client, db)
 
+
+
+
 @router.put("", response_model=PhoneNumberResponse)
 async def update_phone_number (request : Request, phone_number_client : PhoneNumberUpdate, phone_id: int, db: AsyncSession = Depends(get_db)):
     return await handle_phone_number.update_phone_number(request, phone_number_client, phone_id, db)
@@ -37,8 +41,13 @@ async def update_phone_number (request : Request, phone_number_client : PhoneNum
 async def delete_phone_number(request : Request, phone_id : int, db: AsyncSession = Depends(get_db)):
     return await handle_phone_number.delete_phone_number(request, phone_id, db)
 
-
-
+@router.delete("/liquidation")
+async def liquidation_phone_number(
+    request: Request,
+    phone_numbers: LiquidationRequest,  # Đây là một instance của LiquidationRequest
+    db: AsyncSession = Depends(get_db)
+):
+    return await handle_phone_number.liquidation_phone_number(request, phone_numbers.phone_numbers, db)
 
 
 

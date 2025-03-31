@@ -5,13 +5,13 @@ from io import BytesIO
 import pandas as pd
 from fastapi import UploadFile, HTTPException
 from fastapi.responses import JSONResponse
-from sqlalchemy import and_
+from sqlalchemy import and_, delete
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.sql import func, extract
 
-from app.database.models import Provider, TypeNumber, PhoneNumber
+from app.database.models import Provider, TypeNumber, PhoneNumber, BookingHistory, BackupData
 from app.services.v1.handle_provider import get_provider_by_id
 from app.services.v1.handle_type_number import get_type_number_by_id
 from app.utils import utils_regex
@@ -56,8 +56,6 @@ async def get_report_phone_number_by_time(year, month, day,  db: AsyncSession):
     else:
         max_day = calendar.monthrange(year, month)[1]
         return {d: data.get(d, 0) for d in range(1, max_day + 1)}
-
-
 
 
 async def process_excel_file(request, file: UploadFile, db: AsyncSession):
@@ -341,3 +339,90 @@ async def delete_phone_number(request, phone_id, db : AsyncSession):
     result.active = 0
     await db.commit()
     return {"message": "PhoneNumber deleted successfully"}
+
+
+from sqlalchemy.exc import SQLAlchemyError
+
+async def liquidation_phone_number(request, phone_numbers, db: AsyncSession):
+    is_role_admin(request)
+    phone_numbers_invalid = []
+    successful_phone_numbers = []
+
+    try:
+        async with db.begin():  # Bắt đầu transaction
+            for phone_number in phone_numbers:
+                phone_number = utils_regex.normalize_phone_number(phone_number)
+                if not utils_regex.is_valid_phone(phone_number):
+                    phone_numbers_invalid.append(phone_number)
+                    continue
+
+                phone_number_query = await db.execute(
+                    select(PhoneNumber).where(and_(
+                        PhoneNumber.phone_number == phone_number,
+                        PhoneNumber.active == 1
+                    ))
+                )
+                phone_number_result = phone_number_query.scalars().first()
+
+                if not phone_number_result:
+                    phone_numbers_invalid.append(phone_number)
+                    continue
+
+                # Truy vấn TypeNumber
+                type_number_query = await db.execute(
+                    select(TypeNumber).where(TypeNumber.id == phone_number_result.type_id)
+                )
+                type_number_result = type_number_query.scalars().first()
+
+                # Truy vấn Provider
+                provider_query = await db.execute(
+                    select(Provider).where(Provider.id == phone_number_result.provider_id)
+                )
+                provider_result = provider_query.scalars().first()
+
+                #  Truy vấn BookingHistory
+                booking_histories_query = await db.execute(
+                    select(BookingHistory).where(BookingHistory.phone_number_id == phone_number_result.id)
+                )
+                booking_histories_result = booking_histories_query.scalars().all()
+
+                for booking_history in booking_histories_result:
+                    backup_data = BackupData(
+                        phone_number=phone_number_result.phone_number,
+                        type_number_name=type_number_result.name if type_number_result else None,
+                        provider_name=provider_result.name if provider_result else None,
+                        booked_at=booking_history.booked_at,
+                        deployment_at=booking_history.released_at,
+                        create_phone_number_at=phone_number_result.created_at,
+                        name_book=booking_history.user_name,
+                        name_release=booking_history.user_name_release,
+                        installation_fee=phone_number_result.installation_fee,
+                        maintenance_fee=phone_number_result.maintenance_fee,
+                        vanity_number_fee=phone_number_result.vanity_number_fee,
+                    )
+                    db.add(backup_data)
+
+                await db.execute(
+                    delete(BookingHistory).where(BookingHistory.phone_number_id == phone_number_result.id)
+                )
+
+                await db.execute(
+                    delete(PhoneNumber).where(PhoneNumber.id == phone_number_result.id)
+                )
+
+                successful_phone_numbers.append(phone_number)
+
+        return {
+            "message": "Liquidation process completed successfully",
+            "invalid_phone_numbers": phone_numbers_invalid,
+            "successful_phone_numbers": successful_phone_numbers
+        }
+
+    except SQLAlchemyError as e:
+        await db.rollback()
+        return {
+            "message": "Transaction failed, all changes rolled back",
+            "error": str(e),
+            "invalid_phone_numbers": phone_numbers_invalid
+        }
+

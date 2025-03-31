@@ -67,3 +67,20 @@ class BookingHistory(Base):
     user_name_release = Column(String(255), default='')
     phone_number = relationship("PhoneNumber", back_populates="booking_histories")
     # user = relationship("User", back_populates="booking_histories")
+
+
+class BackupData(Base):
+    __tablename__ = "backup_data"
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    phone_number = Column(String(20), nullable=False)
+    type_number_name = Column(String(255), nullable=False)
+    provider_name = Column(String(255), nullable=False)
+    booked_at = Column(TIMESTAMP, nullable=True)  # Ngày đặt số
+    deployment_at = Column(TIMESTAMP, nullable=True)  # Ngày triển khai
+    create_phone_number_at = Column(TIMESTAMP, nullable=True)  # Ngày tạo số
+    name_book = Column(String(255), nullable=False)
+    name_release = Column(String(255), nullable=True)
+    installation_fee = Column(Float, default=0)
+    maintenance_fee = Column(Float, default=0)
+    vanity_number_fee = Column(Float, default=0)
+    created_at = Column(TIMESTAMP, default=func.now()) # Ngày thanh lý
