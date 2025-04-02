@@ -237,7 +237,7 @@ async def create_phone_number(request, phone_number_client, db: AsyncSession):
     try:
         is_role_admin(request)
         await get_type_number_by_id(phone_number_client.type_id, db)
-        await get_provider_by_id(phone_number_client.provider_id, db)
+        await get_provider_by_id(phone_number_client.provider_id, request, db)
 
         # Chuẩn hóa số điện thoại
         phone_number_client.phone_number = utils_regex.normalize_phone_number(phone_number_client.phone_number)
@@ -302,7 +302,7 @@ async def create_phone_number(request, phone_number_client, db: AsyncSession):
 
 async def update_phone_number(request, phone_number_client, phone_id : int, db : AsyncSession):
     is_role_admin(request)
-    await get_provider_by_id(phone_number_client.provider_id, db)
+    await get_provider_by_id(phone_number_client.provider_id, request, db)
     await get_type_number_by_id(phone_number_client.type_id, db)
 
 
