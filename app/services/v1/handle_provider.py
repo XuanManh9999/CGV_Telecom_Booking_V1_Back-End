@@ -59,7 +59,7 @@ async def update_provider_by_id(request, provider_id, db: AsyncSession, provider
     if providerUpdate.name == "":
         raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail="name cannot be empty")
 
-    provider = await get_provider_by_id(provider_id, db)
+    provider = await get_provider_by_id(provider_id, request, db)
     if provider is None:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Provider ID is not found")
 
@@ -75,7 +75,7 @@ async def update_provider_by_id(request, provider_id, db: AsyncSession, provider
 
 async def delete_provider_by_id(request, provider_id, db: AsyncSession):
     is_role_admin(request)
-    provider = await get_provider_by_id(provider_id, db)
+    provider = await get_provider_by_id(provider_id, request, db)
     if provider is None:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Provider ID is not found")
     provider.active = 0
