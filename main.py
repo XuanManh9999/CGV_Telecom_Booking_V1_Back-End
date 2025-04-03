@@ -33,7 +33,8 @@ for router in protected_routers:
 
 origins = [
     "http://localhost:5173",
-    "http://13.229.236.236:5173"
+    "http://13.229.236.236:5173",
+    "http://47.128.146.4:5173"
 ]
 
 app.add_middleware(
@@ -51,5 +52,5 @@ def root():
 
 if __name__ == "__main__":
     import uvicorn
-    # uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
+    # uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)

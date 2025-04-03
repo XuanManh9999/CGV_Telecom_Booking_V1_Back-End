@@ -11,10 +11,11 @@ if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
 target_metadata = Base.metadata
-
 # DATABASE_URL = "postgresql+asyncpg://root:root@localhost:5432/db_booking_cgv"
-DATABASE_URL = "postgresql+asyncpg://cgv_root_booking_app:cgv_root@13.229.236.236:5432/db_booking_cgv"
+# DATABASE_URL = "postgresql+asyncpg://cgv_root_booking_app:cgv_root@13.229.236.236:5432/db_booking_cgv"
+DATABASE_URL = "postgresql+asyncpg://CGV_USER_DB:Cgv@vip2018@172.17.0.1:5432/db_booking_cgv"
 connectable = create_async_engine(DATABASE_URL, echo=True, future=True)
+
 
 
 def run_migrations_offline() -> None:

@@ -32,6 +32,8 @@ def is_role_admin(request: Request):
         parts = auth_header.split()
         token = parts[1]
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+
+        print(f"Check payload: {payload}")
         if payload["role"] != 1:
             raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="Bạn không có quyền truy cập tài nguyên này.")
     except JWTError:

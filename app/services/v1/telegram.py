@@ -1,12 +1,36 @@
 import time
 from typing import Optional, Dict, Any
-
+import logging
 import pandas as pd
 import requests
 from tabulate import tabulate
 from telegram.constants import ParseMode
 
 from app.core.config import TelegramConfig
+
+
+
+# Tạo logger riêng cho Telegram Bot
+telegram_logger = logging.getLogger("telegram_bot_logger")
+telegram_logger.setLevel(logging.ERROR)
+
+# Xóa tất cả các handler cũ của logger để tránh bị ảnh hưởng bởi các log khác
+for handler in telegram_logger.handlers[:]:
+    telegram_logger.removeHandler(handler)
+
+# Cấu hình ghi log vào file
+file_handler = logging.FileHandler("telegram_bot_log.log", encoding="utf-8")
+file_handler.setLevel(logging.ERROR)
+
+# Định dạng log
+formatter = logging.Formatter(
+    "%(asctime)s - %(levelname)s - %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S"
+)
+file_handler.setFormatter(formatter)
+
+# Gán handler cho logger
+telegram_logger.addHandler(file_handler)
 
 
 class TelegramBot:
@@ -57,13 +81,13 @@ class TelegramBot:
                     print(f"✓ Message sent successfully to {chat_id}")
                     return response.json()
                 else:
-                    print(f"✗ Error sending message, status code: {response.status_code}")
                     print(f"Response: {response.text}")
+                    telegram_logger.error(f"Đã xảy ra lỗi gửi tin nhắn với nội dung: {message} ")
+                    return None
 
             except requests.exceptions.RequestException as e:
-                print(f"✗ Attempt {attempt}/{self.max_retries} failed")
-                print(f"Error details: {e}")
-
+                error_msg = f"✗ Attempt {attempt}/{self.max_retries} failed | Error: {e}"
+                print(f"error_msg: {error_msg}")
             if attempt < self.max_retries:
                 time.sleep(self.retry_delay)
 

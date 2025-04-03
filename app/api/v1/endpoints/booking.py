@@ -15,6 +15,7 @@ router = APIRouter(
 
 @router.get("/booking-phone-number")
 async def booking_phone_number(
+    request : Request,
     filter: str = Query(None, description="Filter for phone numbers"),
     telco: str = Query(None, description="Telco provider"),
     limit: int = Query(20, ge=1, le=100, description="Number of records per page"),
@@ -26,12 +27,13 @@ async def booking_phone_number(
             limit = 100
         if offset < 0:
             offset = 0
-        return await asyncio.wait_for(handle_booking.get_booking_by_params(filter, telco, limit, offset, db), timeout=20.0)
+        return await asyncio.wait_for(handle_booking.get_booking_by_params(request, filter, telco, limit, offset, db), timeout=20.0)
     except asyncio.TimeoutError:
         raise HTTPException(status_code=408, detail="Request timed out (processing took over 20 seconds)")
 
 @router.get("/booking-phone-number-for-option")
 async def booking_phone_number_for_option(
+        request : Request,
         quantity : int = Query(50, ge=1, le=100, description="Number of records per page"),
         option : str = Query("available", description="Available options"),
         db: AsyncSession = Depends(get_db),
@@ -42,7 +44,7 @@ async def booking_phone_number_for_option(
             quantity = 100
         if offset < 0:
             offset = 0
-        return await asyncio.wait_for(handle_booking.get_booking_phone_number_for_option(quantity, option, db, offset), timeout=20.0)
+        return await asyncio.wait_for(handle_booking.get_booking_phone_number_for_option(request, quantity, option, db, offset), timeout=20.0)
     except asyncio.TimeoutError:
         raise HTTPException(status_code=408, detail="Request timed out (processing took over 20 seconds)")
 

@@ -20,9 +20,10 @@ from app.services.v1.telegram import TelegramBot
 from app.utils.utils_token import exact_token, is_role_admin
 
 
-async def get_booking_by_params(filter: str, telco: str, limit, offset, db: AsyncSession):
-    provider_alias = aliased(Provider)  # Tạo alias tránh xung đột
+async def get_booking_by_params(request, filter: str, telco: str, limit, offset, db: AsyncSession):
+    role = exact_token(request)["role"]
 
+    provider_alias = aliased(Provider)  # Tạo alias tránh xung đột
     # Truy vấn tổng số bản ghi phù hợp
     total_query = select(func.count()).select_from(PhoneNumber).where(
         PhoneNumber.status == "available", PhoneNumber.active == 1
@@ -30,7 +31,8 @@ async def get_booking_by_params(filter: str, telco: str, limit, offset, db: Asyn
 
     # Nếu có `telco`, lọc theo nhà mạng
     if telco:
-        total_query = total_query.join(provider_alias, PhoneNumber.provider_id == provider_alias.id).where( func.upper(provider_alias.name)  == func.upper(telco) )
+        total_query = total_query.join(provider_alias, PhoneNumber.provider_id == provider_alias.id).where(
+            func.upper(provider_alias.name) == func.upper(telco))
 
     # Nếu có `filter`, xử lý pattern LIKE
     if filter:
@@ -75,7 +77,7 @@ async def get_booking_by_params(filter: str, telco: str, limit, offset, db: Asyn
                 "type_name": pn.type_number.name if pn.type_number else None,
                 "installation_fee": pn.installation_fee,
                 "vanity_number_fee": pn.vanity_number_fee,
-                "provider_name": pn.provider.name if pn.provider else None,
+                "provider_name": pn.provider.name if role == 1 else pn.provider.name.split("_")[0],
                 "phone_number": pn.phone_number,
                 "booked_until": pn.booked_until,
                 "updated_at": pn.updated_at,
@@ -86,7 +88,9 @@ async def get_booking_by_params(filter: str, telco: str, limit, offset, db: Asyn
         ]
     }
 
-async def get_booking_phone_number_for_option(quantity, option, db, offset):
+
+async def get_booking_phone_number_for_option(request, quantity, option, db, offset):
+    role = exact_token(request)["role"]
     provider_alias = aliased(Provider)  # Tạo alias để tránh xung đột
 
     # Truy vấn tổng số lượng bản ghi phù hợp
@@ -125,7 +129,7 @@ async def get_booking_phone_number_for_option(quantity, option, db, offset):
                 "type_name": pn.type_number.name if pn.type_number else None,
                 "installation_fee": pn.installation_fee,
                 "vanity_number_fee": pn.vanity_number_fee,
-                "provider_name": pn.provider.name if pn.provider else None,
+                "provider_name": pn.provider.name if role == 1 else pn.provider.name.split("_")[0],
                 "phone_number": pn.phone_number,
                 "booked_until": pn.booked_until,
                 "updated_at": pn.updated_at,
@@ -156,7 +160,6 @@ async def booking_random(type_number_id, provider_id, quantity_book, request, db
     result = await db.execute(query)
     phone_numbers = result.scalars().all()
     id_phone_numbers = [pn.id for pn in phone_numbers]
-
 
     if len(id_phone_numbers) > 0:
         try:
@@ -213,7 +216,11 @@ async def booking_random(type_number_id, provider_id, quantity_book, request, db
 
 
 async def add_booking_in_booking_history(bookingData, request, db: AsyncSession):
-    username = exact_token(request)["user_name"]
+    token_data = exact_token(request)
+    username = token_data["user_name"]
+    chat_id = token_data["chat_id"]
+
+
     try:
         async with db.begin():  # Mở transaction toàn bộ danh sách
             booked_phone_numbers = []  # Danh sách số điện thoại đã đặt
@@ -249,7 +256,7 @@ async def add_booking_in_booking_history(bookingData, request, db: AsyncSession)
             bot = TelegramBot(token=TelegramConfig.get("TOKEN_TELEGRAM"))
             message = f"Booking thành công:\nHọ tên người book: {username}\nSố điện thoại: {', '.join(booked_phone_numbers)}"
             bot.send_message(chat_id=TelegramConfig.get("CHAT_ID"), message=message)
-
+            bot.send_message(chat_id, message=message)
             return {
                 "status": 200,
                 "message": "Booking phone_number successfully"
@@ -258,7 +265,6 @@ async def add_booking_in_booking_history(bookingData, request, db: AsyncSession)
     except SQLAlchemyError as e:
         await db.rollback()
         raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(e))
-
 
 
 async def release_phone_number(releaseData, request, db: AsyncSession):
@@ -279,8 +285,8 @@ async def release_phone_number(releaseData, request, db: AsyncSession):
                             PhoneNumber.status == "booked",
                             PhoneNumber.booked_until.isnot(None),
                             PhoneNumber.booked_until > datetime.utcnow(),
-                            )
-                    ) .with_for_update()
+                        )
+                    ).with_for_update()
                 )
                 result = await db.execute(query)
                 phone_number = result.scalar_one_or_none()
@@ -311,8 +317,6 @@ async def release_phone_number(releaseData, request, db: AsyncSession):
                 else:
                     issues.append(item)
 
-
-
             await db.commit()  # Commit thay đổi vào DB
             if issues:
                 df_issues = pd.DataFrame(issues)
@@ -325,8 +329,3 @@ async def release_phone_number(releaseData, request, db: AsyncSession):
     except SQLAlchemyError as e:
         await db.rollback()
         raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(e))
-
-
-
-
-
