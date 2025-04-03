@@ -1,5 +1,5 @@
 import math
-from datetime import datetime
+from datetime import datetime, timedelta
 from http import HTTPStatus
 
 import pandas as pd
@@ -13,7 +13,7 @@ from sqlalchemy.orm import aliased
 from sqlalchemy.orm import joinedload
 from sqlalchemy.sql import cast
 from sqlalchemy.sql import func
-
+import pytz
 from app.core.config import TelegramConfig
 from app.database.models import PhoneNumber, Provider, BookingHistory, TypeNumber
 from app.services.v1.telegram import TelegramBot
@@ -269,6 +269,8 @@ async def add_booking_in_booking_history(bookingData, request, db: AsyncSession)
 
 async def release_phone_number(releaseData, request, db: AsyncSession):
     is_role_admin(request)
+    username = exact_token(request)["user_name"]
+
     try:
         async with db.begin():  # Mở transaction toàn bộ danh sách
             issues = []
@@ -307,13 +309,14 @@ async def release_phone_number(releaseData, request, db: AsyncSession):
                     booking_history = booking_result.scalar_one_or_none()
 
                     if booking_history:
-                        # Cập nhật thông tin trong bảng BookingHistory
                         booking_history.contract_code = item.get("contract_code", "")
-                        booking_history.user_name_release = item.get("username", "")
-                        booking_history.released_at = datetime.now()
-                        db.add(booking_history)  # Đánh dấu cập nhật
-
-                    successes.append(item)
+                        booking_history.user_name_release = username
+                        booking_history.released_at = datetime.utcnow() + timedelta(hours=7)
+                        # Đánh dấu cập nhật
+                        db.add(booking_history)
+                        successes.append(item)
+                    else:
+                        issues.append(item)
                 else:
                     issues.append(item)
 

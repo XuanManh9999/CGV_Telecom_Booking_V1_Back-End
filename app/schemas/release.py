@@ -2,7 +2,6 @@ from pydantic import BaseModel
 from typing import List
 
 class ReleaseItem(BaseModel):
-    username: str
     phone_number: str
     contract_code: str
 

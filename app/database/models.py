@@ -2,7 +2,8 @@ from sqlalchemy import Column, Integer, String, Text, ForeignKey, TIMESTAMP, Flo
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.database.db import Base
-
+from datetime import datetime
+import pytz
 # class User(Base):
 #     __tablename__ = "users"
 #
@@ -60,7 +61,9 @@ class BookingHistory(Base):
     user_name = Column(String(255), nullable=False)
     phone_number_id = Column(Integer, ForeignKey("phone_numbers.id"), nullable=False)
     booked_at = Column(TIMESTAMP, default=func.now())
-    released_at = Column(TIMESTAMP)
+    #released_at = Column(TIMESTAMP)
+    # released_at = Column(TIMESTAMP(timezone=True), default=lambda: datetime.now(pytz.timezone('Asia/Ho_Chi_Minh')))
+    released_at = Column(TIMESTAMP(timezone=True), server_default=func.now())
     active = Column(Integer, default=1)
     status = Column(String(20), default='active')  # active, released, expired
     contract_code = Column(String(255), default='')
