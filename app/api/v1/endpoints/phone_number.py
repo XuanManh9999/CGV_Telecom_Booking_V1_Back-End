@@ -31,8 +31,6 @@ async def create_phone_number(request : Request, phone_number_client : PhoneNumb
     return await handle_phone_number.create_phone_number(request, phone_number_client, db)
 
 
-
-
 @router.put("", response_model=PhoneNumberResponse)
 async def update_phone_number (request : Request, phone_number_client : PhoneNumberUpdate, phone_id: int, db: AsyncSession = Depends(get_db)):
     return await handle_phone_number.update_phone_number(request, phone_number_client, phone_id, db)

@@ -13,9 +13,9 @@ from sqlalchemy.orm import aliased
 from sqlalchemy.orm import joinedload
 from sqlalchemy.sql import cast
 from sqlalchemy.sql import func
-import pytz
+
 from app.core.config import TelegramConfig
-from app.database.models import PhoneNumber, Provider, BookingHistory, TypeNumber
+from app.database.models import PhoneNumber, Provider, BookingHistory
 from app.services.v1.telegram import TelegramBot
 from app.utils.utils_token import exact_token, is_role_admin
 
@@ -311,7 +311,7 @@ async def release_phone_number(releaseData, request, db: AsyncSession):
                     if booking_history:
                         booking_history.contract_code = item.get("contract_code", "")
                         booking_history.user_name_release = username
-                        booking_history.released_at = datetime.utcnow() + timedelta(hours=7)
+                        booking_history.released_at = datetime.utcnow()
                         # Đánh dấu cập nhật
                         db.add(booking_history)
                         successes.append(item)

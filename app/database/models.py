@@ -1,9 +1,12 @@
 from sqlalchemy import Column, Integer, String, Text, ForeignKey, TIMESTAMP, Float, BigInteger
 from sqlalchemy.orm import relationship
-from sqlalchemy.sql import func
 from app.database.db import Base
-from datetime import datetime
-import pytz
+from datetime import datetime, timezone
+
+# Hàm trả về thời gian hiện tại theo UTC (UTC-aware)
+def utc_now():
+    return datetime.now(timezone.utc)
+
 # class User(Base):
 #     __tablename__ = "users"
 #
@@ -24,15 +27,16 @@ class Provider(Base):
 
 class TypeNumber(Base):
     __tablename__ = "type_numbers"
-
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(255), unique=True, nullable=False)
     description = Column(Text)
     active = Column(Integer, default=1)
     phone_numbers = relationship("PhoneNumber", back_populates="type_number")
-    booking_expiration = Column(BigInteger, default=259200, nullable=False)# 3 ngay
+    booking_expiration = Column(BigInteger, default=259200, nullable=False)  # 3 ngày
+
     def scalars(self):
         pass
+
 
 class PhoneNumber(Base):
     __tablename__ = "phone_numbers"
@@ -40,18 +44,17 @@ class PhoneNumber(Base):
     provider_id = Column(Integer, ForeignKey("providers.id"), nullable=False)
     phone_number = Column(String(20), unique=True, nullable=False)
     status = Column(String(20), default='available')  # available, booked, expired, released
-    booked_until = Column(TIMESTAMP)
-    created_at = Column(TIMESTAMP, default=func.now())
-    updated_at = Column(TIMESTAMP, default=func.now(), onupdate=func.now())
+    booked_until = Column(TIMESTAMP(timezone=True))
+    created_at = Column(TIMESTAMP(timezone=True), default=utc_now)
+    updated_at = Column(TIMESTAMP(timezone=True), default=utc_now, onupdate=utc_now)
     type_id = Column(Integer, ForeignKey("type_numbers.id"), nullable=False)
     provider = relationship("Provider", back_populates="phone_numbers")
     type_number = relationship("TypeNumber", back_populates="phone_numbers")
-    active=Column(Integer, default=1)
+    active = Column(Integer, default=1)
     installation_fee = Column(Float, default=None)
     maintenance_fee = Column(Float, default=None)
     vanity_number_fee = Column(Float, default=None)
     booking_histories = relationship("BookingHistory", back_populates="phone_number")
-
 
 
 class BookingHistory(Base):
@@ -60,10 +63,8 @@ class BookingHistory(Base):
     # user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     user_name = Column(String(255), nullable=False)
     phone_number_id = Column(Integer, ForeignKey("phone_numbers.id"), nullable=False)
-    booked_at = Column(TIMESTAMP, default=func.now())
-    #released_at = Column(TIMESTAMP)
-    # released_at = Column(TIMESTAMP(timezone=True), default=lambda: datetime.now(pytz.timezone('Asia/Ho_Chi_Minh')))
-    released_at = Column(TIMESTAMP(timezone=True), server_default=func.now())
+    booked_at = Column(TIMESTAMP(timezone=True), default=utc_now)
+    released_at = Column(TIMESTAMP(timezone=True))
     active = Column(Integer, default=1)
     status = Column(String(20), default='active')  # active, released, expired
     contract_code = Column(String(255), default='')
@@ -78,12 +79,21 @@ class BackupData(Base):
     phone_number = Column(String(20), nullable=False)
     type_number_name = Column(String(255), nullable=False)
     provider_name = Column(String(255), nullable=False)
-    booked_at = Column(TIMESTAMP, nullable=True)  # Ngày đặt số
-    deployment_at = Column(TIMESTAMP, nullable=True)  # Ngày triển khai
-    create_phone_number_at = Column(TIMESTAMP, nullable=True)  # Ngày tạo số
+    booked_at = Column(TIMESTAMP(timezone=True), nullable=True)         # Ngày đặt số
+    deployment_at = Column(TIMESTAMP(timezone=True), nullable=True)       # Ngày triển khai
+    create_phone_number_at = Column(TIMESTAMP(timezone=True), nullable=True)  # Ngày tạo số
     name_book = Column(String(255), nullable=False)
     name_release = Column(String(255), nullable=True)
     installation_fee = Column(Float, default=0)
     maintenance_fee = Column(Float, default=0)
     vanity_number_fee = Column(Float, default=0)
-    created_at = Column(TIMESTAMP, default=func.now()) # Ngày thanh lý
+    created_at = Column(TIMESTAMP(timezone=True), default=utc_now)          # Ngày thanh lý
+
+
+class UserBookingLimit(Base):
+    __tablename__ = "user_booking_limit"
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String(255), nullable=False)
+    max_booking_per_day = Column(Integer, default=50)
+    created_at = Column(TIMESTAMP(timezone=True), default=utc_now)
+    updated_at = Column(TIMESTAMP(timezone=True), default=utc_now, onupdate=utc_now)

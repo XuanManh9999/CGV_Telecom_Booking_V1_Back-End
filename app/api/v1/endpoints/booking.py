@@ -1,13 +1,13 @@
+import asyncio
+
 from fastapi import APIRouter, Query, Depends, HTTPException, Request
-from sqlalchemy.util import await_only
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database.db import get_db
-from sqlalchemy.ext.asyncio import AsyncSession
-from app.services.v1 import handle_booking
 from app.schemas.booking import BookingRequest
 from app.schemas.release import ReleaseRequest
+from app.services.v1 import handle_booking
 
-import asyncio
 router = APIRouter(
     prefix="/booking",
     tags=["Booking"]
